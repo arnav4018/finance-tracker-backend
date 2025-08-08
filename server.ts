@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import axios from 'axios';
 
 dotenv.config();
 const app = express();
@@ -9,6 +10,34 @@ const prisma = new PrismaClient();
 
 app.use(cors());
 app.use(express.json());
+
+app.get('/api/transactions', async (req, res) => {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      include: { category: true, user: true },
+    });
+    res.json(transactions);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+app.post('/api/transactions', async (req, res) => {
+  try {
+    const { amount, categoryId, description, userId } = req.body;
+    const transaction = await prisma.transaction.create({
+      data: {
+        amount,
+        categoryId,
+        description,
+        userId,
+      },
+    });
+    res.status(201).json(transaction);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create transaction' });
+  }
+});
 
 app.post('/api/income', async (req, res) => {
   const { amount, source, date, userId } = req.body;
@@ -22,9 +51,18 @@ app.post('/api/income', async (req, res) => {
   }
 });
 
-app.listen(3001, () => console.log('Server running on port 3001'));
-
-import axios from 'axios';
+// Define Alpha Vantage response interface
+interface AlphaVantageResponse {
+  'Monthly Time Series': {
+    [date: string]: {
+      '1. open': string;
+      '2. high': string;
+      '3. low': string;
+      '4. close': string;
+      '5. volume': string;
+    };
+  };
+}
 
 app.post('/api/insights', async (req, res) => {
   const { income, expenses } = req.body;
@@ -42,18 +80,15 @@ app.post('/api/insights', async (req, res) => {
     }
 
     // Alpha Vantage for investment insights
-    const response = await axios.get(
-      'https://www.alphavantage.co/query',
-      {
-        params: {
-          function: 'TIME_SERIES_MONTHLY',
-          symbol: 'SPY', // Example: S&P 500 ETF
-          apikey: process.env.ALPHA_VANTAGE_API_KEY,
-        },
-      }
-    );
-    const data = response.data['Monthly Time Series'] as Record<string, { [key: string]: string }>;
-    const latestPrice = Object.values(data)[0]['4. close'];
+    const response = await axios.get<AlphaVantageResponse>('https://www.alphavantage.co/query', {
+      params: {
+        function: 'TIME_SERIES_MONTHLY',
+        symbol: 'SPY',
+        apikey: process.env.ALPHA_VANTAGE_API_KEY,
+      },
+    });
+    const data = response.data['Monthly Time Series'];
+    const latestPrice = Object.values(data)[0]?.['4. close'] || 'N/A';
     suggestions.push(`Consider investing in low-cost ETFs like SPY (current price: $${latestPrice}).`);
 
     res.json({ suggestions });
@@ -61,3 +96,6 @@ app.post('/api/insights', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch insights' });
   }
 });
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

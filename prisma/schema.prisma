@@ -1,18 +1,37 @@
-generator client {
-  provider = "prisma-client-js"
-}
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+generator client {
+  provider = "prisma-client-js"
+}
+
 model User {
   id        Int       @id @default(autoincrement())
-  email     String    @unique
-  password  String
+  createdAt DateTime  @default(now())
   incomes   Income[]
-  expenses  Expense[]
-  goals     SavingsGoal[]
+  transactions Transaction[]
 }
+
+model Category {
+  id        Int          @id @default(autoincrement())
+  name      String       @unique
+  createdAt DateTime     @default(now())
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+  description String?
+  createdAt   DateTime @default(now())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+}
+
 model Income {
   id        Int      @id @default(autoincrement())
   amount    Float
@@ -20,27 +39,5 @@ model Income {
   date      DateTime
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
 }
-model Expense {
-  id        Int      @id @default(autoincrement())
-  amount    Float
-  category  String
-  date      DateTime
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-}
-model SavingsGoal {
-  id        Int      @id @default(autoincrement())
-  target    Float
-  name      String
-  deadline  DateTime
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-}
-catch (error) {
-    if (error instanceof Error) {
-      res.status(500).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Failed to fetch insights' });
-    }
-  }
