@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  incomes   Income[]
+  expenses  Expense[]
+  goals     SavingsGoal[]
+}
+model Income {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  source    String
+  date      DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+model Expense {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  category  String
+  date      DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+model SavingsGoal {
+  id        Int      @id @default(autoincrement())
+  target    Float
+  name      String
+  deadline  DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch insights' });
+    }
+  }
