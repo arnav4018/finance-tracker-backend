@@ -69,7 +69,7 @@ app.post('/api/insights', async (req, res) => {
   try {
     // Local logic for budget recommendations
     const surplus = income - expenses;
-    let suggestions = [];
+    const suggestions = [];
     if (surplus > 0) {
       suggestions.push(`Save ${Math.round(surplus * 0.2)} monthly for an emergency fund.`);
       if (expenses / income > 0.7) {
